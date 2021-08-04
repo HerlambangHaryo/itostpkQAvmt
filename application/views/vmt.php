@@ -94,10 +94,10 @@ and open the template in the editor.
 		    url:'<?= base_url()?>index.php/vmt_controller/logout',
 		    method: "POST",
 		    success: function(html){
+			clearTimeout(setTO);
 			var url = '<?= base_url()?>index.php/vmt_controller/vmt_login';
 			$.get(url, function(html){
 			    $('#contents').html(html);
-			    clearTimeout(setTO);
 			});
 		    },
 		    error: function (result){

@@ -48,6 +48,7 @@ class Vmt_controller extends CI_Controller {
     }
     
     public function logout(){
+		$this->vmt_models->updatemachinelogout($_POST['vmt']);
 	foreach ($_SESSION as $key => $val):
             if (strpos($key, $this->config->item('sess_cookie_name')) > -1):
 		unset($_SESSION[$key]);
@@ -71,13 +72,59 @@ class Vmt_controller extends CI_Controller {
 //	$data['jobs'] = $this->vmt_models->getJobType($_POST);
 	$data['yard_block'] = $this->vmt_models->mYardBlock($_POST['yard']);
 	$data['suspend'] = $this->vmt_models->get_suspend_status();
+	
 	$machine = $this->vmt_models->get_mch_detail($_POST['vmt']);
+	$updatemachine = $this->vmt_models->update_login_vmt($_POST['vmt']);
 	$this->gtools->s_session('pool', $machine['ID_POOL']);
         $this->load->view('vmt_view', $data);
     }
     
     public function getVMT(){
-	$qryMch = "SELECT ID_MACHINE,MCH_NAME FROM M_MACHINE WHERE MCH_TYPE!='ITV' AND MCH_SUB_TYPE = '".$_GET['vmt_type']."'";
+	// $qryMch = "SELECT ID_MACHINE,MCH_NAME FROM M_MACHINE WHERE MCH_TYPE!='ITV' AND MCH_SUB_TYPE = '".$_GET['vmt_type']."' ORDER BY MCH_NAME";
+	$qryMch = "SELECT
+					sub.* 
+				FROM
+					(
+					SELECT
+						S.*,
+						regexp_replace( S.angka, '[^0-9]', '' ) AS nomor 
+					FROM
+						(
+						SELECT
+					ID_MACHINE,
+					MCH_NAME,
+				CASE
+						
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '1' THEN
+						REPLACE ( REGEXP_SUBSTR( MCH_NAME, ' [^ ]' ), ' ', '' ) 
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '2' THEN
+					REPLACE ( REGEXP_SUBSTR( MCH_NAME, ' ([[:alnum:]]+\.?){3,4}?' ), ' ', '' ) 
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '0' THEN
+						MCH_NAME 
+					END AS huruf,
+				CASE
+						
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '1' THEN
+					REPLACE ( REGEXP_SUBSTR( MCH_NAME, '([[:alnum:]]+\.?){3,4} ?' ), ' ', '' ) 
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '2' THEN
+						REPLACE ( REGEXP_SUBSTR( MCH_NAME, ' [^ ][^ ]' ), ' ', '' ) 
+						WHEN REGEXP_COUNT ( MCH_NAME, ' ' ) = '0' THEN
+					MCH_NAME
+					end AS angka 
+				FROM
+					M_MACHINE 
+				WHERE
+					MCH_TYPE != 'ITV' 
+					AND MCH_SUB_TYPE = '".$_GET['vmt_type']."'
+				ORDER BY
+					REGEXP_SUBSTR( MCH_NAME, ' ' ) ASC
+						) S 
+					ORDER BY
+						S.HURUF 
+					) sub 
+				ORDER BY
+					sub.huruf ASC,
+					sub.nomor ASC";
         $getMch = $this->db->query($qryMch)->result_array();
 	echo json_encode($getMch);
 	exit;
@@ -85,10 +132,10 @@ class Vmt_controller extends CI_Controller {
     
     public function getYardManager(){
 	
-	$result = $this->vmt_models->getJobYardManager($_GET);
-	
-	echo json_encode($result);
-	exit;
+		$result = $this->vmt_models->getJobYardManager($_GET);
+		
+		echo json_encode($result);
+		exit;
     }
     
     public function slotInfo(){
@@ -100,37 +147,55 @@ class Vmt_controller extends CI_Controller {
 	exit;
     }
     
+    public function get_void_list(){
+	echo json_encode($this->vmt_models->get_void_list($_GET['block'],$_GET['slot']));
+	exit;
+    }
+
     public function yard_placement_submit(){
-//	echo '<pre>user : ';print_r($this->gtools->g_session('user'));echo '</pre>';
-//	echo '<pre>post : ';print_r($_POST);echo '</pre>';
-	$id_user = $this->gtools->g_session('user');
-	$id_terminal = $this->gtools->g_session('terminal');
-	$act = $_POST['act'];
-	$no_container = $_POST['no_container'];
-	$point = $_POST['point'];
-	$id_op_status = $_POST['id_op_status'];
-	$event = $_POST['event'];
-	$id_machine = $_POST['id_machine'];
-	$driver_id = $_POST['driver_id'];
-	$yt = $_POST['yt'];
-	$class_code = $_POST['class_code'];
-	
-	$yard_position = array(
-	    'BLOCK_NAME'=>$_POST['block_name'],
-	    'BLOCK'=>$_POST['id_block'],
-	    'SLOT'=>$_POST['slot'],
-	    'ROW'=>$_POST['row'],
-	    'TIER'=>$_POST['tier']
-	);
-//		echo '<pre>yard_pos : ';print_r($yard_position);echo '</pre>';
-	if($act == 'P'){
-	    $retval = $this->vmt_models->yard_placement_submit($no_container, $point, $id_op_status, $event, $id_user, $yard_position, $id_machine, $driver_id,$yt,$class_code,$id_terminal);
-	}elseif($act == 'R'){
-	    $retval = $this->vmt_models->yard_relocation_submit($no_container, $point, $id_user, $yard_position,$id_machine,$id_terminal );
-	}else{
-	    $retval = 'Gak pake vmt gue ya?';
-	}
-	echo json_encode($retval);
+		//	echo '<pre>user : ';print_r($this->gtools->g_session('user'));echo '</pre>';
+		//	echo '<pre>post : ';print_r($_POST);echo '</pre>';
+		$retval = "";
+		$id_user = $this->gtools->g_session('user');
+		$id_terminal = $this->gtools->g_session('terminal');
+		$act = $_POST['act'];
+		$no_container = $_POST['no_container'];
+		$point = $_POST['point'];
+		$id_op_status = $_POST['id_op_status'];
+		$event = $_POST['event'];
+		$id_machine = $_POST['id_machine'];
+		$driver_id = $_POST['driver_id'];
+		$yt = $_POST['yt'];
+		$class_code = $_POST['class_code'];
+		
+		$yard_position = array(
+			'BLOCK_NAME'=>$_POST['block_name'],
+			'BLOCK'=>$_POST['id_block'],
+			'SLOT'=>$_POST['slot'],
+			'ROW'=>$_POST['row'],
+			'TIER'=>$_POST['tier']
+		);
+		//		echo '<pre>yard_pos : ';print_r($yard_position);echo '</pre>';
+		if($act == 'P'){
+			if(isset($_POST['action'])){
+				if($_POST['action'] == 'chassis'){
+					$validation = $this->vmt_models->validationTierContainer($_POST['yd_yard'],$_POST['yd_block'], $_POST['yd_slot'], $_POST['yd_row'], $_POST['yd_block_name'], $_POST['tier']);
+					if($validation=='1'){
+						$retval = $this->vmt_models->yard_placement_submit($no_container, $point, $id_op_status, $event, $id_user, $yard_position, $id_machine, $driver_id,$yt,$class_code,$id_terminal);
+					} else {
+						$retval = array('F','Container masih tertumpuk container lain diatasnya, silahkan lakukan relokasi container diatasnya terlebih dahulu!');
+					}
+				}
+
+			} else {
+				$retval = $this->vmt_models->yard_placement_submit($no_container, $point, $id_op_status, $event, $id_user, $yard_position, $id_machine, $driver_id,$yt,$class_code,$id_terminal);
+			}
+		}elseif($act == 'R'){
+			$retval = $this->vmt_models->yard_relocation_submit($no_container, $point, $id_user, $yard_position,$id_machine,$id_terminal );
+		}else{
+			$retval = '';
+		}
+		echo json_encode($retval);
     }
 
     public function get_suspend_list(){
@@ -173,7 +238,7 @@ class Vmt_controller extends CI_Controller {
     }
     
     public function doSearch(){
-	echo json_encode($this->vmt_models->searchContainer($_POST['cont']));
+	echo json_encode($this->vmt_models->searchContainer($_POST['search_value']));
 	exit;
     }
 }

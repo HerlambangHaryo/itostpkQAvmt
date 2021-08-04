@@ -1,7 +1,8 @@
 <style>
     .button-number{
 	font-weight: bold;
-	font-size: 20px;
+	font-size: 30px;
+	height: 70px;
     }
     
     .table {
@@ -38,170 +39,114 @@
 <script>
     function button_number_onclick(n){
         var text = $('#input-search').val();
-	if(text.length < 5){
-	    $('#input-search').val(text + n.toString());
+	if(text.length < 7){
+	    var new_text = text + n.toString();
+	    $('#input-search').val(new_text);
+//	    var len = new_text.length;
+//	    console.log('len : ' + len);
+//	    if(len == 6){
+//		$('#input-search').css('font-size','50px');
+//	    }else if(len == 7){
+//		$('#input-search').css('font-size','40px');
+//	    }
 	}else{
-	    alert('Cannot search more than 5 digits');
+	    alert('Cannot search more than 7 digits');
 	}
     }
     
     function clear_search(){
 	$('#input-search').val("");
+	$('#input-search').css('font-size','60px');
+    }
+    
+    function backspace_click(){
+	var text = $('#input-search').val();
+	var res = text.substring(0,text.length - 1);
+	$('#input-search').val(res);
     }
     
     function doSearch(){
-	var search = $('#input-search').val();
-	if(search.length == 5){
-	    $.ajax({
-		url:'<?= base_url()?>index.php/vmt_controller/doSearch/',
-		method: "POST",
-		dataType : 'json',
-		async: false,
-		data:{
-		    cont : search
-		},
-		success: function(data){
-		    var htmlListYard = '';
-		    var row_class = 'odd';
-		    $.each(data, function(i,k){
-			htmlListYard += '<tr class="' + row_class + '" onclick="choose_search(this)" data-container="' + k.NO_CONTAINER + '"\n\
-					     data-point="' + k.POINT + '"  data-ves-voyage="' + k.ID_VES_VOYAGE + '" data-yd-block="' + k.YD_BLOCK + '" data-yd-slot="' + k.YD_SLOT + '">';
-			htmlListYard += '<td>' + k.NO_CONTAINER + '</td>';
-			htmlListYard += '<td>' + k.ID_ISO_CODE + '</td>';
-			htmlListYard += '<td>' + k.CONT_STATUS + '</td>';
-			htmlListYard += '<td>' + (k.TID != null ? k.TID : '') + '</td>';
-			htmlListYard += '<td>' + (k.WAIT_JOB != null ? k.WAIT_JOB : '') + '</td>';
-			htmlListYard += '<td>' + (k.POSITION_ != null ? k.POSITION_ : '') + '</td>';
-			htmlListYard += '<td>' + (k.EXPECTED_POSITION != null ? k.EXPECTED_POSITION : '') + '</td>';
-			htmlListYard += '</tr>';
-			row_class = row_class == 'odd' ? 'even' : 'odd';
-		    });
-		    $('#div-search-content table tbody').html(htmlListYard);
-		},
-		error: function (){
-		    alert('Get Job Yard Failed. Check your connection and try again or contact your administrator.');
-		}
-	    });
-	}else{
-	    alert('Must be 5 characters');
-	}
+	$('#search-job').val($('#input-search').val());
+	getYardManager();
+	closePopUp();
     }
     
-    function choose_search(e){
-    	if($(e).hasClass('selected')){
-	    var cont = $(e).attr('data-container');
-	    var point = $(e).attr('data-point');
-	    var ves_voyage = $(e).attr('data-ves-voyage');
-	    if($('#box-' + cont + '-' + point + '-' + ves_voyage).length > 0){
-		$('#box-' + cont + '-' + point + '-' + ves_voyage).parent().click();
-	    }else{
-		var block = $(e).attr('data-yd-block');
-		var slot = $(e).attr('data-yd-slot');
-		
-		$('.block-text').removeClass('active');
-		$('#block-' + block).addClass('active');
-		$('.slot-text').removeClass('active');
-		$('#slot-' + slot).addClass('active');
-		setBoxYardPosition();
-	    }
-	    closePopUp();
-	}else{
-	    $('#div-search-content table tbody tr').removeClass('selected');
-	    $(e).addClass('selected');
-	}
-    }
+    
 </script>
 <div id="div-search-form">
-    <div id="div-search-header" style="display: flex;">
-	<div class="col3">
-	    <div class="col12">
-		<input id="input-search" type="text" class="input-form" style="font-size: 60px;" maxlength="5"/>
-	    </div>
+    <!--<div id="div-search-header" style="display: flex;">-->
+	<div class="col12">
+	    <input id="input-search" type="text" class="input-form" style="font-size: 60px; text-align: right;" maxlength="7"/>
 	</div>
-	<div class="col7">
-	    <div class="col2 fleft div-button">
+	<div class="col9 fleft">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(1)">
                     <label>1</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(2)">
                     <label>2</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(3)">
                     <label>3</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(4)">
                     <label>4</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(5)">
                     <label>5</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(6)">
                     <label>6</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(7)">
                     <label>7</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(8)">
                     <label>8</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(9)">
                     <label>9</label>
                 </button>
             </div>
-	    <div class="col2 fleft div-button">
+	    <div class="col4 fleft div-button">
                 <button class="btn button-number" onclick="button_number_onclick(0)">
                     <label>0</label>
                 </button>
             </div>
-	    <div class="col4 fleft div-button">
+	    <div class="col8 fleft div-button">
                 <button class="btn button-number" onclick="clear_search()">
                     <label>Clear</label>
                 </button>
             </div>
 	</div>
-	<div class="col2">
+	<div class="col3 fright">
 	    <div class="col12">
-		<button class="btn button-number" onclick="doSearch()">
+		<button class="btn button-number" onclick="backspace_click()">
+		    <label>Backspace</label>
+		</button>
+	    </div>
+	    <div class="col12">
+		<button class="btn button-number" onclick="doSearch()" style="height: 230px;">
 		    <label>Search</label>
 		</button>
 	    </div>
-	    <div class="col12">
-		<button class="btn button-number" onclick="">
-		    <label>Close</label>
-		</button>
-	    </div>
 	</div>
-    </div>
-    <div id="div-search-content">
-	<table class="table">
-	    <thead>
-		<tr>
-		    <td>Container</td>
-		    <td>ISO</td>
-		    <td>FM</td>
-		    <td>Truck No</td>
-		    <td>Wait Job</td>
-		    <td>Position</td>
-		    <td>Expected Pos.</td>
-		</tr>
-	    </thead>
-	    <tbody></tbody>
-	</table>
-    </div>
+    <!--</div>-->
+    
 </div>
